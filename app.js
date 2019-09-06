@@ -1,36 +1,24 @@
-const http = require('http');
-const fs = require("fs");
+const path = require('path');
 
-const server = http.createServer((req, res) => {
-    if (req.url === '/') {
-        res.setHeader('Content-Type', 'text/html');
-        res.write('<html> <body><h1>Please input the details</h1></body></html>')
-        res.write(`<form action='/message' method="POST" >
-        <input type="text" name="message"/>
-        <button type="submit">Submit</button>
-    </form>`);
-        return res.end();
-    }
-    if (req.url === '/message' && req.method === 'POST') {
-        const body = [];
-        req.on('data', (chunk) => {
-            console.log(chunk);
-            body.push(chunk);
-        });
-        return req.on('end', () => {
-            const parsedBody = Buffer.concat(body).toString();
-            console.log('parsedBody', parsedBody.toString());
-            const message = parsedBody.split('=')[1];
-            fs.writeFile('message.txt', message, err => {
-                res.statusCode = 302;
-                res.setHeader('Location', '/');
-                return res.end()
-            });
-        });
-    }
-    console.log('xxx');
-    res.write('<html> <body><h1>No request matched..returning to main page</h1></body></html>')
-    res.end()
-});
+const express = require('express');
+const bodyParser = require('body-parser');
 
-server.listen(3333);
+const errorController = require('./controllers/error');
+
+const app = express();
+
+app.set('view engine', 'ejs');
+app.set('views', 'views');
+
+const adminRoutes = require('./routes/admin');
+const shopRoutes = require('./routes/shop');
+
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.use('/admin', adminRoutes);
+app.use(shopRoutes);
+
+app.use(errorController.get404);
+
+app.listen(3000);
